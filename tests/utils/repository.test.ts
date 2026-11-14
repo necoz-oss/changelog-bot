@@ -44,4 +44,36 @@ describe('utils/repository.getRepoFullName', () => {
       expect((error as ConfigError).exitCode).toBe(EXIT_USAGE);
     }
   });
+
+  test.each([
+    ['missing owner', '/repo'],
+    ['missing repository', 'owner/'],
+    ['additional separator', 'owner/repo/extra'],
+    ['whitespace-only owner', '   /repo'],
+    ['whitespace-only repository', 'owner/   '],
+    ['whitespace-only value', '   '],
+    ['whitespace inside owner', 'ow ner/repo'],
+    ['whitespace inside repository', 'owner/re po'],
+  ])('throws usage error when value is malformed (%s)', (_label, value) => {
+    expect(() =>
+      getRepoFullName(loadAppConfig({ REPO_FULL_NAME: value })),
+    ).toThrow(ConfigError);
+
+    try {
+      getRepoFullName(loadAppConfig({ REPO_FULL_NAME: value }));
+    } catch (error) {
+      expect(error).toBeInstanceOf(ConfigError);
+      expect((error as ConfigError).exitCode).toBe(EXIT_USAGE);
+    }
+  });
+
+  test('falls back to GITHUB_REPOSITORY and validates it too', () => {
+    expect(() =>
+      getRepoFullName(loadAppConfig({ GITHUB_REPOSITORY: 'owner/' })),
+    ).toThrow(ConfigError);
+
+    expect(
+      getRepoFullName(loadAppConfig({ GITHUB_REPOSITORY: 'owner/repo' })),
+    ).toBe('owner/repo');
+  });
 });
