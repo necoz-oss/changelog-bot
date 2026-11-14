@@ -5,6 +5,8 @@ import {
   isString,
   isPrimitive,
   isNumber,
+  isNullable,
+  isBucketName,
   isReasoningModel,
   isBulletLine,
 } from '@/utils/is.js';
@@ -13,8 +15,31 @@ describe('is utilities', () => {
   test('isRecord', () => {
     expect(isRecord({})).toBe(true);
     expect(isRecord([])).toBe(true);
+    expect(isRecord(new (class Example {})())).toBe(true);
     expect(isRecord(null)).toBe(false);
     expect(isRecord('x')).toBe(false);
+  });
+
+  test('isNullable', () => {
+    expect(isNullable(null)).toBe(true);
+    expect(isNullable(undefined)).toBe(true);
+    expect(isNullable(0)).toBe(false);
+    expect(isNullable('')).toBe(false);
+    expect(isNullable(false)).toBe(false);
+  });
+
+  test('isBucketName', () => {
+    expect(isBucketName('Breaking Changes')).toBe(true);
+    expect(isBucketName('Added')).toBe(true);
+    expect(isBucketName('Fixed')).toBe(true);
+    expect(isBucketName('Changed')).toBe(true);
+    expect(isBucketName('Docs')).toBe(true);
+    expect(isBucketName('Test')).toBe(true);
+    expect(isBucketName('Chore')).toBe(true);
+    expect(isBucketName('Reverted')).toBe(true);
+    expect(isBucketName('Other')).toBe(false);
+    expect(isBucketName('')).toBe(false);
+    expect(isBucketName(1)).toBe(false);
   });
 
   test('isString', () => {
@@ -52,3 +77,4 @@ describe('is utilities', () => {
     expect(isBulletLine('item')).toBe(false);
   });
 });
+

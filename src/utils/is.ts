@@ -1,9 +1,9 @@
 import {
   arrayOf as createArrayOfGuard,
-  define,
   isArray as isArrayValue,
   isError as isErrorValue,
   isInstanceOf as createInstanceGuard,
+  isNil,
   isNaN as isNaNValue,
   isNotNil,
   isNull,
@@ -13,11 +13,10 @@ import {
   isSafeInteger as isSafeIntegerValue,
   isString,
   isUndefined as isUndefinedValue,
-  oneOf,
+  oneOfValues,
   type Guard,
 } from 'is-kit';
 import { SECTION_ORDER } from '@/constants/changelog.js';
-import type { BucketName } from '@/types/changelog.js';
 
 export { isNotNil, isNull, isNumber, isPrimitive, isString };
 
@@ -84,16 +83,14 @@ export function isInstanceOf<Instance>(
  * @param value Unknown candidate.
  * @returns True when the value is nullish (null or undefined).
  */
-export const isNullable = oneOf(isNull, isUndefined);
+export const isNullable = isNil;
 
 /**
- * Determine whether a value is a plain object record (non-null object).
+ * Determine whether a value is a non-null object, including arrays and instances.
  * @param value Unknown candidate.
  * @returns True when the value is an object and not null.
  */
-export const isRecord = define<Record<string | number | symbol, unknown>>(
-  (value) => isObject(value) && !isNull(value),
-);
+export const isRecord = isObject;
 
 /**
  * Detect whether a model string refers to a reasoning-capable OpenAI family.
@@ -116,12 +113,8 @@ export function isBulletLine(line: string): boolean {
 
 /**
  * Type guard for changelog bucket names.
- * WHY: Keep the predicate reusable and composable via `define` so it
- * plays nicely with other guard combinators from is-kit.
  * @param section Arbitrary section candidate.
  * @returns True when `section` is one of SECTION_ORDER.
  */
-export const isBucketName = define<BucketName>(
-  (section) =>
-    isString(section) && (SECTION_ORDER as readonly string[]).includes(section),
-);
+export const isBucketName = oneOfValues(SECTION_ORDER);
+
