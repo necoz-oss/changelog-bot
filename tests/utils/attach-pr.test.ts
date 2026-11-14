@@ -49,4 +49,76 @@ describe('attachPrNumbers', () => {
       'Fix internal edge case in [#42](https://github.com/octo/repo/pull/42)',
     );
   });
+
+  test('preserves bullet lines inside triple-backtick fences', () => {
+    const md = [
+      '### Added',
+      '- Add feature',
+      '',
+      '```text',
+      '- Add feature',
+      '```',
+      '',
+    ].join('\n');
+
+    const out = attachPrNumbers(md, { 'Add feature': 42 });
+
+    const lines = out.split('\n');
+    expect(lines[1]).toBe('- Add feature (#42)');
+    expect(lines[4]).toBe('- Add feature');
+    expect(out.match(/\(#42\)/g)?.length).toBe(1);
+  });
+
+  test('preserves bullet lines inside triple-tilde fences', () => {
+    const md = [
+      '### Added',
+      '~~~md',
+      '- Add feature',
+      '~~~',
+      '- Add feature',
+      '',
+    ].join('\n');
+
+    const out = attachPrNumbers(md, { 'Add feature': 42 });
+
+    const lines = out.split('\n');
+    expect(lines[2]).toBe('- Add feature');
+    expect(lines[4]).toBe('- Add feature (#42)');
+  });
+
+  test('a shorter fence does not close a longer one', () => {
+    const md = [
+      '````md',
+      '- Add feature',
+      '```',
+      '- Add feature',
+      '````',
+      '- Add feature',
+      '',
+    ].join('\n');
+
+    const out = attachPrNumbers(md, { 'Add feature': 42 });
+
+    const lines = out.split('\n');
+    expect(lines[1]).toBe('- Add feature');
+    expect(lines[3]).toBe('- Add feature');
+    expect(lines[5]).toBe('- Add feature (#42)');
+  });
+
+  test('a backtick fence does not close a tilde fence', () => {
+    const md = [
+      '~~~md',
+      '```',
+      '- Add feature',
+      '~~~',
+      '- Add feature',
+      '',
+    ].join('\n');
+
+    const out = attachPrNumbers(md, { 'Add feature': 42 });
+
+    const lines = out.split('\n');
+    expect(lines[2]).toBe('- Add feature');
+    expect(lines[4]).toBe('- Add feature (#42)');
+  });
 });

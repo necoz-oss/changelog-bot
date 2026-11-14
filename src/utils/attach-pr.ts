@@ -35,6 +35,40 @@ function splitBulletLine(line: string): BulletParts | undefined {
   return { prefix, text };
 }
 
+type FenceMarker = {
+  /** Fence character, either a backtick or a tilde. */
+  character: '`' | '~';
+  /** Number of fence characters, used to match the closing fence. */
+  length: number;
+};
+
+/**
+ * Detect a fenced code block delimiter (``` or ~~~) at the start of a line.
+ * CommonMark allows up to three leading spaces before the fence.
+ * @param line Markdown line to inspect.
+ */
+function matchFenceDelimiter(line: string): FenceMarker | undefined {
+  const fenceMatch = line.match(/^\s{0,3}(`{3,}|~{3,})/);
+  if (!fenceMatch) return undefined;
+  const fenceText = fenceMatch[1];
+  return { character: fenceText[0] as '`' | '~', length: fenceText.length };
+}
+
+/**
+ * Check whether a line closes the currently open fenced code block.
+ * The closing fence must reuse the opening character and be at least as long.
+ * @param line Markdown line to inspect.
+ * @param openFence Fence opened earlier in the document.
+ */
+function closesFence(line: string, openFence: FenceMarker): boolean {
+  const fenceMatch = matchFenceDelimiter(line);
+  if (!fenceMatch) return false;
+  return (
+    fenceMatch.character === openFence.character &&
+    fenceMatch.length >= openFence.length
+  );
+}
+
 /**
  * Attach a PR number reference to bullet lines in a markdown section when a matching
  * title exists in the provided map. Keeps existing references intact.
@@ -72,7 +106,21 @@ export function attachPrNumbers(
   );
 
   const lines = md.split('\n');
+  // WHY: Fenced code blocks can contain bullet-looking lines (documentation
+  // examples), so those lines must be emitted untouched instead of being linked.
+  let openFence: FenceMarker | undefined;
   const updated = lines.map((line) => {
+    if (openFence) {
+      if (closesFence(line, openFence)) openFence = undefined;
+      return line;
+    }
+
+    const fenceMarker = matchFenceDelimiter(line);
+    if (fenceMarker) {
+      openFence = fenceMarker;
+      return line;
+    }
+
     if (!isBulletLine(line) || !/^[-*]\s+/.test(line)) return line;
     if (hasInlinePrReference(line)) return line;
 
