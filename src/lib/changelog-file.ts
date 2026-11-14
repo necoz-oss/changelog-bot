@@ -15,7 +15,9 @@ export function readChangelog(path: string): string {
       return '';
     }
 
-    throw error;
+    // Log the error for debugging purposes
+    console.error(`Error reading changelog file at ${path}:`, error);
+    throw new Error(`Failed to read changelog file: ${error.message}`);
   }
 }
 
