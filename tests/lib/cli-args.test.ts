@@ -50,6 +50,7 @@ describe('cli-args', () => {
     expect(out.whyMaxCharsPerPr).toBe(DEFAULT_WHY_MAX_CHARS_PER_PR);
     expect(out.whyConfidence).toBe(DEFAULT_WHY_CONFIDENCE);
     expect(out.whyLabel).toBe(DEFAULT_WHY_LABEL);
+    expect(out.audience).toBe('all');
   });
 
   test('parses explicit flags', async () => {
@@ -118,6 +119,12 @@ describe('cli-args', () => {
     expect(out.whyMaxCharsPerPr).toBe(600);
     expect(out.whyConfidence).toBe('high');
     expect(out.whyLabel).toBe('Reason');
+  });
+
+  test.each(['all', 'user'])('parses --audience %s', async (audience) => {
+    const out = await parseCliArgs(['node', 'cli', '--audience', audience]);
+
+    expect(out.audience).toBe(audience);
   });
 
   test.each(['file', 'stdout', 'pull-request'])(
@@ -199,6 +206,7 @@ describe('cli-args', () => {
         JSON.stringify({
           provider: PROVIDER_GEMINI,
           language: 'nl',
+          audience: 'user',
           instructionsFile: '.github/changelog-instructions.md',
           dryRunJsonReport: true,
           noAi: true,
@@ -213,6 +221,7 @@ describe('cli-args', () => {
 
       expect(out.provider).toBe(PROVIDER_GEMINI);
       expect(out.language).toBe('nl');
+      expect(out.audience).toBe('user');
       expect(out.instructionsFile).toBe('.github/changelog-instructions.md');
       expect(out.dryRunJsonReport).toBe(true);
       expect(out.noAi).toBe(true);
@@ -252,6 +261,7 @@ describe('cli-args', () => {
         JSON.stringify({
           provider: PROVIDER_GEMINI,
           language: 'nl',
+          audience: 'user',
           output: 'file',
           dryRun: true,
           noAi: true,
@@ -269,6 +279,8 @@ describe('cli-args', () => {
           PROVIDER_ANTHROPIC,
           '--language',
           'en',
+          '--audience',
+          'all',
           '--output',
           'stdout',
           '--no-dry-run',
@@ -279,6 +291,7 @@ describe('cli-args', () => {
 
       expect(out.provider).toBe(PROVIDER_ANTHROPIC);
       expect(out.language).toBe('en');
+      expect(out.audience).toBe('all');
       expect(out.output).toBe('stdout');
       expect(out.dryRun).toBe(false);
       expect(out.noAi).toBe(false);
@@ -309,6 +322,7 @@ describe('cli-args', () => {
 
   test.each([
     ['unknown flag', ['node', 'cli', '--unknown-flag']],
+    ['invalid audience choice', ['node', 'cli', '--audience', 'invalid']],
     ['invalid provider choice', ['node', 'cli', '--provider', 'bogus']],
     ['invalid output choice', ['node', 'cli', '--output', 'bogus']],
   ])('maps yargs %s failures to usage exit code', async (_, argv) => {

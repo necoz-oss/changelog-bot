@@ -1,8 +1,4 @@
-
-import {
-  DEFAULT_AUDIENCE,
-  type Audience,
-} from '@/constants/audience.js';
+import { DEFAULT_AUDIENCE, type Audience } from '@/constants/audience.js';
 import {
   SECTION_BREAKING_CHANGES,
   SECTION_ADDED,
@@ -11,8 +7,10 @@ import {
 } from '@/constants/changelog.js';
 import type { CategoryAssignments } from '@/types/changelog.js';
 import type { ReleaseDraft } from '@/types/release.js';
+import { validateReleaseResult } from '@/utils/release-validation.js';
 
-const USER_VISIBLE_CATEGORIES = new Set<string>([  SECTION_BREAKING_CHANGES,
+const USER_VISIBLE_CATEGORIES = new Set<string>([
+  SECTION_BREAKING_CHANGES,
   SECTION_ADDED,
   SECTION_FIXED,
   SECTION_CHANGED,
@@ -28,6 +26,10 @@ export function filterReleaseDraftByAudience(
   draft: ReleaseDraft,
   audience: Audience = DEFAULT_AUDIENCE,
 ): ReleaseDraft {
+  // Validate the complete draft before filtering so invalid or unknown
+  // assignments cannot be silently hidden by the audience policy.
+  validateReleaseResult(draft);
+
   if (audience === 'all') {
     return draft;
   }
@@ -56,9 +58,6 @@ export function filterReleaseDraftByAudience(
     ...draft,
     changes: includedChanges,
     assignments,
-    excludedChanges: [
-      ...draft.excludedChanges,
-      ...filteredExclusions,
-    ],
+    excludedChanges: [...draft.excludedChanges, ...filteredExclusions],
   };
 }

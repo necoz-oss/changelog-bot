@@ -54,21 +54,14 @@ export type DryRunJsonReport = {
 };
 
 /**
- * Format fallback reasons for a single diagnostic line.
- * @param fallbackReasons Reasons collected for the diagnostic block.
- * @returns Reasons joined for display, or 'none' when the list is empty.
- */
-function formatFallbackReasons(fallbackReasons: string[]): string {
-  return fallbackReasons.length ? fallbackReasons.join('; ') : 'none';
-}
-
-/**
  * Format provider diagnostics for dry-run output.
  * @param input Provider, model, and fallback state for the current run.
  * @returns Human-readable diagnostic block.
  */
 export function formatDryRunDiagnostics(input: DryRunDiagnosticsInput): string {
-  const fallbackReasonText = formatFallbackReasons(input.fallbackReasons);
+  const fallbackReasonText = input.fallbackReasons.length
+    ? input.fallbackReasons.join('; ')
+    : 'none';
 
   const lines = [
     `Provider: ${input.providerName}`,
@@ -98,9 +91,9 @@ export function formatDryRunDiagnostics(input: DryRunDiagnosticsInput): string {
   }
 
   if (input.why?.enabled) {
-    const whyFallbackReasonText = formatFallbackReasons(
-      input.why.fallbackReasons,
-    );
+    const whyFallbackReasonText = input.why.fallbackReasons.length
+      ? input.why.fallbackReasons.join('; ')
+      : 'none';
     lines.push(
       `WHY targets: ${input.why.targetsFound}`,
       `WHY PR bodies fetched: ${input.why.prBodiesFetched}`,
@@ -127,9 +120,9 @@ export function formatDryRunDiagnostics(input: DryRunDiagnosticsInput): string {
   }
 
   if (input.metadata) {
-    const metadataFallbackReasonText = formatFallbackReasons(
-      input.metadata.fallbackReasons,
-    );
+    const metadataFallbackReasonText = input.metadata.fallbackReasons.length
+      ? input.metadata.fallbackReasons.join('; ')
+      : 'none';
     lines.push(
       `Metadata lookups: total=${input.metadata.totalLookups}, successful=${input.metadata.successfulLookups}, degraded=${input.metadata.degradedLookups}`,
       `Metadata fallback reasons: ${metadataFallbackReasonText}`,

@@ -33,14 +33,6 @@ export function createMetadataDiagnostics(): MetadataDiagnostics {
   };
 }
 
-function addFallbackReason(
-  targetDiagnostics: MetadataDiagnostics,
-  reason: string,
-): void {
-  if (!targetDiagnostics.fallbackReasons.includes(reason)) {
-    targetDiagnostics.fallbackReasons.push(reason);
-  }
-}
 /**
  * Record a single typed metadata lookup outcome into the diagnostics accumulator.
  * @param targetDiagnostics Target diagnostics object to update.
@@ -65,8 +57,11 @@ export function recordMetadataLookupOutcome<ResultType>(
       typeof fallbackReason === 'function'
         ? fallbackReason(lookupResult.status)
         : fallbackReason;
-    if (formattedReason) {
-      addFallbackReason(targetDiagnostics, formattedReason);
+    if (
+      formattedReason &&
+      !targetDiagnostics.fallbackReasons.includes(formattedReason)
+    ) {
+      targetDiagnostics.fallbackReasons.push(formattedReason);
     }
   }
 }
@@ -97,7 +92,9 @@ export function mergeMetadataDiagnostics(
     }
 
     for (const reason of diagnosticsEntry.fallbackReasons) {
-      addFallbackReason(consolidated, reason);
+      if (!consolidated.fallbackReasons.includes(reason)) {
+        consolidated.fallbackReasons.push(reason);
+      }
     }
   }
 

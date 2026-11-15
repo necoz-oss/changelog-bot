@@ -1,13 +1,10 @@
 import type {
-  WhyCounterfactualRole,
   WhyExtractionItem,
   WhyExtractionResult,
   WhySelectionDiagnostic,
 } from '@/types/why.js';
 import { JEV_EVALUATION_THRESHOLDS } from '@/constants/jev.js';
 import { combinedWhyCandidateProbability } from '@/utils/why-candidate-probability.js';
-
-export type { WhyCounterfactualRole };
 
 // Array#indexOf uses this sentinel when generated text has no source candidate.
 const SOURCE_CANDIDATE_NOT_FOUND_INDEX = -1;
@@ -18,27 +15,12 @@ export type WhyEvaluationCase = {
   id: string;
   /** Pull request from which the example was taken, when applicable. */
   sourcePullRequest?: number;
-  /** Identifier linking variants of the same source change family. */
-  familyId?: string;
-  /** Specific counterfactual role played by this variant. */
-  counterfactualRole?: WhyCounterfactualRole;
   /** Candidate material supplied to every evaluated extractor. */
   item: WhyExtractionItem;
   /** Expected accepted candidate index, or null when no WHY note is valid. */
   expectedSelectedCandidateIndex: number | null;
   /** Additional candidate indexes that are also valid WHY evidence for this case. */
   acceptableCandidateIndexes?: readonly number[];
-};
-
-/** Configuration options for scoring extractor predictions against corpus cases. */
-export type WhyEvaluationOptions = {
-  /**
-   * Whether to count unanchored notes (prose not matching any candidate) on positive
-   * cases as confirmed evidence true positives. Defaults to false so unverified prose
-   * does not inflate evidence-grounded precision; unanchored decisions remain tracked
-   * in `unanchoredSelections` and decision-level metrics.
-   */
-  allowParaphrasedEvidence?: boolean;
 };
 
 /** Precision, recall, and source-selection metrics for one extractor run. */
@@ -49,38 +31,18 @@ export type WhyEvaluationMetrics = {
   expectedSelections: number;
   /** Number of WHY notes returned by the extractor for corpus cases. */
   predictedSelections: number;
-  /**
-   * Evidence-grounded true positives: positive cases whose returned note preserves an
-   * expected source candidate (or unanchored prose when `allowParaphrasedEvidence` is true).
-   */
+  /** Correctly accepted cases. */
   truePositives: number;
-  /** Incorrectly accepted cases, including wrong candidates and unverified prose when strict. */
+  /** Incorrectly accepted cases. */
   falsePositives: number;
-  /** Expected positive cases that did not achieve an evidence-grounded true positive. */
+  /** Correct cases omitted by the extractor. */
   falseNegatives: number;
-  /**
-   * Evidence-grounded precision: fraction of returned notes that are confirmed true positives.
-   * Unanchored notes on positive cases do not count as confirmed TPs by default.
-   */
+  /** Fraction of returned notes that belong to a labeled positive case. */
   precision: number | null;
-  /**
-   * Evidence-grounded recall: fraction of labeled positive cases that achieved a confirmed
-   * true positive (matching an expected candidate by default).
-   */
+  /** Fraction of labeled positive cases that produced a note. */
   recall: number | null;
-  /** Harmonic mean of evidence-grounded precision and recall. */
+  /** Harmonic mean of precision and recall. */
   f1: number | null;
-  /**
-   * Decision-level true positives: positive cases that received a non-wrong-candidate note
-   * (including unanchored prose), separating selection decision from verbatim evidence grounding.
-   */
-  decisionTruePositives: number;
-  /** Decision-level precision across all returned notes (counting unanchored positive notes). */
-  decisionPrecision: number | null;
-  /** Decision-level recall across labeled positive cases (counting unanchored positive notes). */
-  decisionRecall: number | null;
-  /** Harmonic mean of decisionPrecision and decisionRecall. */
-  decisionF1: number | null;
   /** Positive cases whose returned text preserves the expected source candidate. */
   exactCandidatePreservations: number;
   /** Source-candidate preservation rate among labeled positive cases. */
@@ -89,20 +51,6 @@ export type WhyEvaluationMetrics = {
   unexpectedSelections: number;
   /** Additional returned notes for corpus PRs that already have a selection. */
   duplicateSelections: number;
-  /** Returned notes on positive cases that selected an explicitly incorrect source candidate. */
-  wrongCandidateSelections: number;
-  /** Returned notes that did not match any candidate from the source item. */
-  unanchoredSelections: number;
-  /** Cases with unrelated rationale incorrectly accepted by the extractor. */
-  wrongChangeAcceptances: number;
-  /** Cases with unrelated rationale correctly rejected by the extractor. */
-  wrongChangeRejections: number;
-  /** Fraction of unrelated-rationale cases accepted (null when denominator is zero). */
-  wrongChangeAcceptanceRate: number | null;
-  /** Cases lacking a valid rationale correctly rejected by the extractor. */
-  missingReasonRejections: number;
-  /** Fraction of missing-reason cases correctly rejected (null when denominator is zero). */
-  missingReasonRejectionRate: number | null;
   /** Per-case decisions used to diagnose metric changes. */
   outcomes: WhyEvaluationOutcome[];
 };
@@ -113,10 +61,6 @@ export type WhyEvaluationOutcome = {
   id: string;
   /** PR number supplied to the extractor. */
   prNumber: number;
-  /** Identifier linking variants of the same source change family. */
-  familyId?: string;
-  /** Specific counterfactual role played by this variant. */
-  counterfactualRole?: WhyCounterfactualRole;
   /** Labeled candidate index, or null when no candidate should be selected. */
   expectedSelectedCandidateIndex: number | null;
   /** Whether the extractor returned a WHY note for this PR. */
@@ -125,10 +69,6 @@ export type WhyEvaluationOutcome = {
   selectedCandidateIndex: number | null;
   /** Whether the returned note preserves the expected source candidate. */
   preservesExpectedCandidate: boolean;
-  /** Whether the returned note matched an explicitly incorrect source candidate. */
-  isWrongCandidate: boolean;
-  /** Whether the returned note did not match any candidate from the source item. */
-  isUnanchored: boolean;
 };
 
 /** Selection quality after applying one candidate probability threshold. */
@@ -266,18 +206,12 @@ function thresholdMetrics(
  * Score extractor output against corpus labels without interpreting generated prose.
  * @param cases Labeled candidate sets sent to the extractor.
  * @param output Returned WHY notes.
- * @param options Optional evaluation parameters (e.g. unanchored prose scoring).
- * @returns Acceptance, exact-source-selection, and counterfactual rejection metrics.
+ * @returns Acceptance and exact-source-selection metrics.
  */
 export function evaluateWhySelections(
   cases: readonly WhyEvaluationCase[],
   output: readonly WhyExtractionResult[],
-  options?: WhyEvaluationOptions,
 ): WhyEvaluationMetrics {
-  // WHY: Default to strict evidence-grounded scoring so unanchored prose (which cannot be
-  // verified without semantic interpretation) does not inflate confirmed true positives.
-  const allowParaphrasedEvidence = options?.allowParaphrasedEvidence ?? false;
-
   const casesByPrNumber = new Map<number, WhyEvaluationCase>();
   for (const evaluationCase of cases) {
     if (casesByPrNumber.has(evaluationCase.item.prNumber)) {
@@ -308,16 +242,8 @@ export function evaluateWhySelections(
   let truePositives = 0;
   let falsePositives = 0;
   let falseNegatives = 0;
-  let decisionTruePositives = 0;
   let exactCandidatePreservations = 0;
-  let wrongCandidateSelections = 0;
-  let unanchoredSelections = 0;
-  let wrongChangeAcceptances = 0;
-  let wrongChangeRejections = 0;
-  let missingReasonRejections = 0;
-  let totalMissingReasonCases = 0;
   const outcomes: WhyEvaluationOutcome[] = [];
-
   for (const evaluationCase of cases) {
     const expectedIndex = evaluationCase.expectedSelectedCandidateIndex;
     const expectedIndexes = expectedCandidateIndexes(evaluationCase);
@@ -330,87 +256,29 @@ export function evaluateWhySelections(
     const preservesExpectedCandidate =
       selectedCandidateIndex !== undefined &&
       expectedIndexes.includes(selectedCandidateIndex);
-
-    // WHY: A note that matches a candidate from the source item but does not match any
-    // acceptable candidate index is an explicitly wrong candidate choice.
-    const isWrongCandidate =
-      predictedSelection &&
-      selectedCandidateIndex !== undefined &&
-      !expectedIndexes.includes(selectedCandidateIndex);
-
-    // WHY: A note that does not match any candidate from the source item is unanchored.
-    // Generative models may paraphrase evidence, but purely extractive engines should not emit unanchored text.
-    const isUnanchored =
-      predictedSelection && selectedCandidateIndex === undefined;
-
-    if (isUnanchored) {
-      unanchoredSelections += 1;
-    }
-
     outcomes.push({
       id: evaluationCase.id,
       prNumber: evaluationCase.item.prNumber,
-      familyId: evaluationCase.familyId,
-      counterfactualRole: evaluationCase.counterfactualRole,
       expectedSelectedCandidateIndex: expectedIndex,
       selected: predictedSelection,
       selectedCandidateIndex: selectedCandidateIndex ?? null,
       preservesExpectedCandidate,
-      isWrongCandidate,
-      isUnanchored,
     });
-
     if (expectedSelection) expectedSelections += 1;
     if (predictedSelection) predictedSelections += 1;
 
-    if (evaluationCase.counterfactualRole === 'missing-reason') {
-      totalMissingReasonCases += 1;
-    }
-
     if (expectedSelection && predictedSelection) {
-      if (isWrongCandidate) {
-        // WHY: Selecting an explicitly wrong candidate is both a false assertion of that candidate
-        // and a failure to select the expected candidate.
-        falsePositives += 1;
-        falseNegatives += 1;
-        wrongCandidateSelections += 1;
-      } else if (isUnanchored) {
-        decisionTruePositives += 1;
-        if (allowParaphrasedEvidence) {
-          truePositives += 1;
-        } else {
-          falsePositives += 1;
-          falseNegatives += 1;
-        }
-      } else {
-        truePositives += 1;
-        decisionTruePositives += 1;
-        if (preservesExpectedCandidate) {
-          exactCandidatePreservations += 1;
-        }
+      truePositives += 1;
+      if (preservesExpectedCandidate) {
+        exactCandidatePreservations += 1;
       }
       continue;
     }
-
     if (expectedSelection) {
       falseNegatives += 1;
       continue;
     }
-
-    if (predictedSelection) {
-      falsePositives += 1;
-      if (evaluationCase.counterfactualRole === 'unrelated-rationale') {
-        wrongChangeAcceptances += 1;
-      }
-      continue;
-    }
-
-    // Case had expectedSelection === false and predictedSelection === false: correct rejection.
-    if (evaluationCase.counterfactualRole === 'unrelated-rationale') {
-      wrongChangeRejections += 1;
-    } else if (evaluationCase.counterfactualRole === 'missing-reason') {
-      missingReasonRejections += 1;
-    }
+    if (predictedSelection) falsePositives += 1;
   }
 
   // WHY: Notes for unknown PRs or duplicate notes for a known PR have no unique
@@ -422,20 +290,6 @@ export function evaluateWhySelections(
   const recall = ratio(truePositives, expectedSelections);
   const f1 = f1Score(precision, recall);
 
-  const decisionPrecision = ratio(decisionTruePositives, predictedSelections);
-  const decisionRecall = ratio(decisionTruePositives, expectedSelections);
-  const decisionF1 = f1Score(decisionPrecision, decisionRecall);
-
-  const totalUnrelatedCases = wrongChangeAcceptances + wrongChangeRejections;
-  const wrongChangeAcceptanceRate = ratio(
-    wrongChangeAcceptances,
-    totalUnrelatedCases,
-  );
-  const missingReasonRejectionRate = ratio(
-    missingReasonRejections,
-    totalMissingReasonCases,
-  );
-
   return {
     caseCount: cases.length,
     expectedSelections,
@@ -446,10 +300,6 @@ export function evaluateWhySelections(
     precision,
     recall,
     f1,
-    decisionTruePositives,
-    decisionPrecision,
-    decisionRecall,
-    decisionF1,
     exactCandidatePreservations,
     exactCandidatePreservationRate: ratio(
       exactCandidatePreservations,
@@ -457,13 +307,6 @@ export function evaluateWhySelections(
     ),
     unexpectedSelections,
     duplicateSelections,
-    wrongCandidateSelections,
-    unanchoredSelections,
-    wrongChangeAcceptances,
-    wrongChangeRejections,
-    wrongChangeAcceptanceRate,
-    missingReasonRejections,
-    missingReasonRejectionRate,
     outcomes,
   };
 }

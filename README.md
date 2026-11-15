@@ -57,8 +57,8 @@ Using it in CI? Jump to [GitHub Actions integration](#github-actions-integration
 | `--release-tag`          | Git ref (tag or HEAD) to generate release for            | latest tag or HEAD                     |
 | `--release-name`         | Display name for version (without `v`)                   | derived from tag                       |
 | `--release-body`         | Additional release notes body                            | `""`                                   |
-| `--language`             | Language for generated changelog prose                   | `en`    |
-| `--audience`             |    Controls generated changelog content: all (default) or user.             | `all`  |
+| `--language`             | Language for generated changelog prose                   | `en`                                   |
+| `--audience`             | Controls generated changelog content: `all` or `user`    | `all`                                  |
 | `--instructions`         | Additional changelog writing/grouping instructions       | unset                                  |
 | `--instructions-file`    | Path to a file with additional instructions              | unset                                  |
 | `--output`               | Delivery destination (`pull-request`, `file`, `stdout`)  | `pull-request`                         |
@@ -78,11 +78,10 @@ Using it in CI? Jump to [GitHub Actions integration](#github-actions-integration
 
 ### Choose a Changelog audience
 
-Use `—-audience` to control which categories appear in the generated changelog.
-
+Use `--audience` to control which categories appear in the generated changelog.
 
 ```
-# Generate a user-facing changelog**
+# Generate a user-facing changelog
 
 pnpm dlx @nyaomaru/changelog-bot \
   --release-tag HEAD \
@@ -93,11 +92,10 @@ pnpm dlx @nyaomaru/changelog-bot \
 
 The available audiences are:
 
-| Audience | Included Categories |
-| :--- | :--- |
+| Audience          | Included Categories                                                |
+| :---------------- | :----------------------------------------------------------------- |
 | **All (Default)** | All existing categories, including Docs, Test, Chore, and Reverted |
-| **User** | Breaking Changes, Added, Fixed, and Changed |
-
+| **User**          | Breaking Changes, Added, Fixed, and Changed                        |
 
 The `user` audience excludes maintenance-oriented entries such as documentation, tests, chores, and reverted changes. Additional release-note sections are not affected.
 
@@ -123,6 +121,7 @@ confirm whether an LLM request was used or the run fell back. Add
 
 <u>Write to a local CHANGELOG.md file:
 </u>
+
 ```
 pnpm dlx @nyaomaru/changelog-bot \
   --release-tag HEAD \
@@ -605,7 +604,7 @@ precedence are treated as the public compatibility contract.
 | Version label           | `--release-name`                                     | `release-name`             | `release_name`             | `releaseName`, derived from release ref                     |
 | Release notes body      | `--release-body`                                     | `release-body`             | `release_body`             | `releaseBody`, default empty                                |
 | Output language         | `--language`                                         | `language`                 | `language`                 | `language`, default `en`                                    |
-| Changelog audience | `--audience` | none | none | `audience`, default `all`; accepts `all` or `user` |
+| Changelog audience      | `--audience`                                         | `audience`                 | `audience`                 | `audience`, default `all`; accepts `all` or `user`          |
 | Extra instructions      | `--instructions`                                     | `instructions`             | `instructions`             | `instructions`, unset                                       |
 | Instructions file       | `--instructions-file`                                | `instructions-file`        | `instructions_file`        | `instructionsFile`, unset                                   |
 | Output destination      | `--output`                                           | `output`                   | `output`                   | `output`, default `pull-request`                            |
