@@ -1,0 +1,80 @@
+name: Publish to npm
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24.22.1'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Setup mise
+        uses: jdx/mise-action@v5
+        with:
+          install: true
+
+      - name: Enable Corepack
+        run: |
+          corepack enable
+          corepack install
+
+      - name: Resolve pnpm store path
+        id: pnpm-store
+        run: |
+          pnpm_store_path="$(pnpm store path)"
+          if [[ -z "$pnpm_store_path" ]]; then
+            echo "::error::pnpm store path returned an empty value"
+            exit 1
+          fi
+          printf 'path=%s\n' "$pnpm_store_path" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: mise run dev_install
+
+      - name: Lint
+        run: mise run lint
+
+      - name: Test
+        run: mise run test
+
+      - name: Build package
+        run: mise run build
+
+      - name: Check dist integrity
+        run: pnpm run check:dist
+
+      - name: Verify tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG_VERSION=$(jq -r .version package.json)
+          if [ "$TAG" != "$PKG_VERSION" ]; then
+            echo "Tag $TAG does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+
+      - name: Publish to npm (Trusted Publishing)
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

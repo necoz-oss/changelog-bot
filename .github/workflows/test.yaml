@@ -1,0 +1,50 @@
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Install mise
+        uses: jdx/mise-action@v5
+        with:
+          cache: true
+
+      - name: Install toolchain
+        run: mise install
+
+      - name: Enable Corepack
+        run: |
+          corepack enable
+          corepack install
+
+      - name: Resolve pnpm store path
+        id: pnpm-store
+        run: |
+          pnpm_store_path="$(pnpm store path)"
+          if [[ -z "$pnpm_store_path" ]]; then
+            echo "::error::pnpm store path returned an empty value"
+            exit 1
+          fi
+          printf 'path=%s\n' "$pnpm_store_path" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run tests
+        run: mise run test
