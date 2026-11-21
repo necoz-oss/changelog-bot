@@ -1213,5 +1213,380 @@
       ]
     },
     "expectedSelectedCandidateIndex": null
+  },
+  {
+    "id": "agent-grounded-retry-jitter",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "grounded-intent",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "Issue #182 reported that concurrent CI runners triggered secondary rate limits simultaneously; the approved fix introduces jittered exponential backoff.",
+      "observableEvidence": "Commit and PR title explicitly reference rate limit retry jitter; rationale directly explains avoiding thundering herd spikes.",
+      "rationaleNote": "Grounded in observable problem statement and verified issue intent."
+    },
+    "item": {
+      "prNumber": 90201,
+      "title": "fix(github): add exponential backoff with full jitter to API retries",
+      "itemText": "Add exponential backoff with full jitter to API retries",
+      "sectionTitle": "Fixed",
+      "trustScore": 10,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Adds randomized exponential backoff to GitHub API retries to prevent thundering herd spikes during secondary rate limit incidents."
+      ]
+    },
+    "expectedSelectedCandidateIndex": 0
+  },
+  {
+    "id": "agent-grounded-timeout-config",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "grounded-intent",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "Enterprise users behind high-latency proxy environments needed custom timeout limits to prevent socket drops.",
+      "observableEvidence": "CLI flag adds --timeout option to prevent premature connection aborts.",
+      "rationaleNote": "Directly reflects the verified feature motivation."
+    },
+    "item": {
+      "prNumber": 90202,
+      "title": "feat(cli): allow configuring request timeout via CLI option",
+      "itemText": "Allow configuring request timeout via CLI option",
+      "sectionTitle": "Added",
+      "trustScore": 9,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Allows configuring HTTP timeouts so slow corporate proxy connections do not abort changelog generation prematurely."
+      ]
+    },
+    "expectedSelectedCandidateIndex": 0
+  },
+  {
+    "id": "agent-grounded-cache-invalidation",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "grounded-intent",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "In long-running daemon mode, freshly pushed git tags were not visible until restart due to memoized ref lookups.",
+      "observableEvidence": "PR title and commit fix memoization leak; candidate explains why clearing the cache solves the stale tag symptom.",
+      "rationaleNote": "Concrete symptom-to-solution rationale grounded in observed bug."
+    },
+    "item": {
+      "prNumber": 90203,
+      "title": "fix(git): invalidate cached git references after remote fetch",
+      "itemText": "Invalidate cached git references after remote fetch",
+      "sectionTitle": "Fixed",
+      "trustScore": 8,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Clears in-memory tag cache after fetching so consecutive runs recognize newly published tags immediately."
+      ]
+    },
+    "expectedSelectedCandidateIndex": 0
+  },
+  {
+    "id": "agent-grounded-sanitize-log-secrets",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "grounded-intent",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "Security audit revealed raw Authorization headers were printed when DEBUG=1 was enabled in GitHub Actions.",
+      "observableEvidence": "Title and candidate directly connect sanitizing headers with preventing credential exposure in CI logs.",
+      "rationaleNote": "Clear security requirement grounded in verified vulnerability."
+    },
+    "item": {
+      "prNumber": 90204,
+      "title": "fix(logging): redact personal access tokens and auth headers in debug logs",
+      "itemText": "Redact personal access tokens and auth headers in debug logs",
+      "sectionTitle": "Fixed",
+      "trustScore": 10,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Masks authorization tokens and API keys in debug logging to prevent credential exposure in public CI build logs."
+      ]
+    },
+    "expectedSelectedCandidateIndex": 0
+  },
+  {
+    "id": "agent-grounded-japanese-concurrency",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "grounded-intent",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "大規模リポジトリで多数のPRを同時に取得すると429エラーが発生するため、同時実行数を4に制限する要望があった。",
+      "observableEvidence": "タイトルと候補文がレート制限回避と安定性向上の目的を直接説明している。",
+      "rationaleNote": "実際の運用課題（429回避）に基づいた正当な根拠。"
+    },
+    "item": {
+      "prNumber": 90205,
+      "title": "feat(api): GitHubメタデータ取得の並行数を制限",
+      "itemText": "GitHubメタデータ取得の並行数を制限",
+      "sectionTitle": "Added",
+      "trustScore": 9,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "GitHub APIの二次レート制限を回避し、大規模リポジトリでも安定してPR情報を取得できるようにするため。"
+      ]
+    },
+    "expectedSelectedCandidateIndex": 0
+  },
+  {
+    "id": "agent-unsupported-retry-quantum-crypto",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "unsupported-plausible",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "Human intent was solely network resilience against API rate limits. No cryptographic or timing side-channel threat exists.",
+      "observableEvidence": "None. The rationale fabricates a cryptographic side-channel defense that has no basis in the code change or issue context.",
+      "rationaleNote": "Plausible-sounding security hallucination generated by the agent. Must be rejected despite high trust score (10)."
+    },
+    "item": {
+      "prNumber": 90206,
+      "title": "fix(github): add exponential backoff with full jitter to API retries",
+      "itemText": "Add exponential backoff with full jitter to API retries",
+      "sectionTitle": "Fixed",
+      "trustScore": 10,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Secures retry scheduling against timing side-channel attacks by introducing cryptographic entropy into the backoff delay."
+      ]
+    },
+    "expectedSelectedCandidateIndex": null
+  },
+  {
+    "id": "agent-unsupported-timeout-ddos-protection",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "unsupported-plausible",
+    "evaluationTier": "limitation",
+    "groundTruthContext": {
+      "verifiedIntent": "The change only adds a client-side timeout setting for CLI users. It does not act as a DDoS mitigation service.",
+      "observableEvidence": "None. The agent projected server-side anti-DDoS semantics onto a local CLI client option.",
+      "rationaleNote": "Plausible-sounding infra security claim without ground truth basis. Labeled as limitation case because an extractor without repository context might be swayed by the authoritative tone."
+    },
+    "item": {
+      "prNumber": 90207,
+      "title": "feat(cli): allow configuring request timeout via CLI option",
+      "itemText": "Allow configuring request timeout via CLI option",
+      "sectionTitle": "Added",
+      "trustScore": 9,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Mitigates distributed denial-of-service vectors by aggressively pruning slow-read HTTP client connections."
+      ]
+    },
+    "expectedSelectedCandidateIndex": null
+  },
+  {
+    "id": "agent-unsupported-memory-leak-speculation",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "unsupported-plausible",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "Cache invalidation was for reference freshness, not memory leak reclamation (the reference cache holds less than 20 strings).",
+      "observableEvidence": "None. The agent hallucinated severe out-of-memory crashes as the rationale for clearing a tiny cache.",
+      "rationaleNote": "Plausible performance/stability hallucination. Tested at trustScore 8 to prevent trust-score correlation."
+    },
+    "item": {
+      "prNumber": 90208,
+      "title": "fix(git): invalidate cached git references after remote fetch",
+      "itemText": "Invalidate cached git references after remote fetch",
+      "sectionTitle": "Fixed",
+      "trustScore": 8,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Reclaims retained heap memory from unbounded reference trees to prevent V8 out-of-memory crashes on long-lived CI agents."
+      ]
+    },
+    "expectedSelectedCandidateIndex": null
+  },
+  {
+    "id": "agent-unsupported-timing-attack-sanitization",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "unsupported-plausible",
+    "evaluationTier": "limitation",
+    "groundTruthContext": {
+      "verifiedIntent": "Masking uses simple regex substitution. Constant-time execution is neither implemented nor relevant to debug log redaction.",
+      "observableEvidence": "None. The agent generated an authoritative cryptographic timing attack justification unsupported by the actual regex replacement.",
+      "rationaleNote": "High-trust plausible hallucination. Limitation case: without code inspection, extractor may find this highly convincing."
+    },
+    "item": {
+      "prNumber": 90209,
+      "title": "fix(logging): redact personal access tokens and auth headers in debug logs",
+      "itemText": "Redact personal access tokens and auth headers in debug logs",
+      "sectionTitle": "Fixed",
+      "trustScore": 9,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Employs constant-time string masking to eliminate variable-latency leakage during high-concurrency log flushing."
+      ]
+    },
+    "expectedSelectedCandidateIndex": null
+  },
+  {
+    "id": "agent-unsupported-japanese-cache-optimization",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "unsupported-plausible",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "単にJSON.parseの呼び出し箇所を1箇所まとめただけのリファクタリングであり、V8インラインキャッシュや高トラフィックのボトルネックとは無関係。",
+      "observableEvidence": "なし。エージェントが高度な最適化効果をでっち上げたハルシネーション。",
+      "rationaleNote": "専門用語を並べた説得力のあるハルシネーション。高信頼度スコア（9）での誤判定を防ぐためのテストケース。"
+    },
+    "item": {
+      "prNumber": 90210,
+      "title": "perf(json): 設定ファイルのパース処理を最適化",
+      "itemText": "設定ファイルのパース処理を最適化",
+      "sectionTitle": "Changed",
+      "trustScore": 9,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "高トラフィック環境におけるV8エンジンのインラインキャッシュ効率を最大化し、JSONパースのボトルネックを解消するため。"
+      ]
+    },
+    "expectedSelectedCandidateIndex": null
+  },
+  {
+    "id": "agent-impl-retry-math-random",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "implementation-only",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "Fix rate limit retries with exponential backoff.",
+      "observableEvidence": "Walks through the mathematical formula in the code diff rather than stating the user-facing purpose.",
+      "rationaleNote": "Pure algorithmic walkthrough of code lines; lacks user-facing motivation."
+    },
+    "item": {
+      "prNumber": 90211,
+      "title": "fix(github): add exponential backoff with full jitter to API retries",
+      "itemText": "Add exponential backoff with full jitter to API retries",
+      "sectionTitle": "Fixed",
+      "trustScore": 9,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Calculates delay using Math.min(maxDelay, baseDelay * Math.pow(2, attempt)) and multiplies by Math.random()."
+      ]
+    },
+    "expectedSelectedCandidateIndex": null
+  },
+  {
+    "id": "agent-impl-timeout-yargs-builder",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "implementation-only",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "Add CLI timeout option.",
+      "observableEvidence": "Describes yargs builder API calls and default value assignment in the source code.",
+      "rationaleNote": "Implementation-level parameter declaration description."
+    },
+    "item": {
+      "prNumber": 90212,
+      "title": "feat(cli): allow configuring request timeout via CLI option",
+      "itemText": "Allow configuring request timeout via CLI option",
+      "sectionTitle": "Added",
+      "trustScore": 8,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Registers timeout option in yargs builder with type number and default value 30000 in src/index.ts."
+      ]
+    },
+    "expectedSelectedCandidateIndex": null
+  },
+  {
+    "id": "agent-impl-cache-delete-method",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "implementation-only",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "Invalidate git tag cache.",
+      "observableEvidence": "Quotes internal method call and variable assignment.",
+      "rationaleNote": "Direct implementation walkthrough of cache reset statements."
+    },
+    "item": {
+      "prNumber": 90213,
+      "title": "fix(git): invalidate cached git references after remote fetch",
+      "itemText": "Invalidate cached git references after remote fetch",
+      "sectionTitle": "Fixed",
+      "trustScore": 8,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Calls this.cachedRefs.clear() and resets the lastFetchedTimestamp property to 0."
+      ]
+    },
+    "expectedSelectedCandidateIndex": null
+  },
+  {
+    "id": "agent-impl-regex-replace-call",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "implementation-only",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "Redact tokens in logs.",
+      "observableEvidence": "Verbatim regular expression and replacement string description.",
+      "rationaleNote": "Implementation detail showing regex pattern and replacement target."
+    },
+    "item": {
+      "prNumber": 90214,
+      "title": "fix(logging): redact personal access tokens and auth headers in debug logs",
+      "itemText": "Redact personal access tokens and auth headers in debug logs",
+      "sectionTitle": "Fixed",
+      "trustScore": 9,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "Applies regex replace pattern /Bearer\\s+[a-zA-Z0-9_-]+/g with static mask 'Bearer [REDACTED]' in src/utils/sanitize.ts."
+      ]
+    },
+    "expectedSelectedCandidateIndex": null
+  },
+  {
+    "id": "agent-impl-japanese-variable-extraction",
+    "authorship": "agent",
+    "origin": "synthetic",
+    "archetype": "implementation-only",
+    "evaluationTier": "regression",
+    "groundTruthContext": {
+      "verifiedIntent": "設定ファイル検証ロジックの関数モジュール化。",
+      "observableEvidence": "関数の切り出し手順とファイル名を説明しているだけ。",
+      "rationaleNote": "コード変更手順のみを説明した実装ウォークスルー。"
+    },
+    "item": {
+      "prNumber": 90215,
+      "title": "refactor(config): 設定ファイルのバリデーション関数を切り出し",
+      "itemText": "設定ファイルのバリデーション関数を切り出し",
+      "sectionTitle": "Changed",
+      "trustScore": 8,
+      "trustBucket": "high",
+      "requiresHighConfidence": false,
+      "candidates": [
+        "loadConfig関数からバリデーションロジックをvalidateConfigFile関数として別ファイルに切り出し、戻り値の型定義を更新した。"
+      ]
+    },
+    "expectedSelectedCandidateIndex": null
   }
 ]
