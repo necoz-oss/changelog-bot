@@ -144,3 +144,135 @@ describe('detectPrSubChangesFromCommits', () => {
     expect(result).toBeNull();
   });
 });
+
+describe('detectPrSubChangesFromCommits suppression and deduplication rules', () => {
+  // Two commits that expand on their own: distinct subjects in distinct type/scope slots.
+  const exportCommit = {
+    sha: 'c1',
+    subject: 'feat(api): add bulk export endpoint',
+  };
+  const authCommit = {
+    sha: 'c2',
+    subject: 'fix(auth): handle missing authorization header',
+  };
+  const expanded = [
+    {
+      subIndex: 1,
+      title: 'add bulk export endpoint',
+      rawTitle: 'feat(api): add bulk export endpoint',
+      commitSha: 'c1',
+    },
+    {
+      subIndex: 2,
+      title: 'handle missing authorization header',
+      rawTitle: 'fix(auth): handle missing authorization header',
+      commitSha: 'c2',
+    },
+  ];
+
+  test('expands the baseline commits when no suppression rule applies', () => {
+    const result = detectPrSubChangesFromCommits(200, 'Export and auth fixes', [
+      exportCommit,
+      authCommit,
+    ]);
+
+    expect(result).toEqual(expanded);
+  });
+
+  test.each([
+    ['the exact commit subject', 'feat(api): add bulk export endpoint'],
+    ['a different prefix, case and punctuation', 'Add Bulk-Export endpoint!'],
+  ])(
+    'keeps the pull request whole when a commit matches the PR title (%s)',
+    (_label, prTitle) => {
+      const result = detectPrSubChangesFromCommits(200, prTitle, [
+        exportCommit,
+        authCommit,
+      ]);
+
+      expect(result).toBeNull();
+    },
+  );
+
+  test.each([
+    'feat(ui): first part of export dialog',
+    'feat(ui): export dialog part 2',
+    'feat(ui): export dialog step 3',
+    'feat(ui): follow-up change for export dialog',
+  ])(
+    'keeps the pull request whole when a commit is a partial increment: %s',
+    (partialSubject) => {
+      const result = detectPrSubChangesFromCommits(
+        200,
+        'Export and auth fixes',
+        [exportCommit, authCommit, { sha: 'c3', subject: partialSubject }],
+      );
+
+      expect(result).toBeNull();
+    },
+  );
+
+  test('collapses commits whose subjects differ only in case and punctuation, keeping the first', () => {
+    const result = detectPrSubChangesFromCommits(200, 'Export and auth fixes', [
+      { sha: 'c1', subject: 'feat(api): Add bulk export endpoint' },
+      { sha: 'c1b', subject: 'fix(api-v2): add bulk-export endpoint.' },
+      authCommit,
+    ]);
+
+    expect(result).toEqual([
+      {
+        subIndex: 1,
+        title: 'Add bulk export endpoint',
+        rawTitle: 'feat(api): Add bulk export endpoint',
+        commitSha: 'c1',
+      },
+      expanded[1],
+    ]);
+  });
+
+  test.each(['fixup!', 'squash!', 'amend!'])(
+    'ignores %s commits and keeps the remaining sub-changes',
+    (marker) => {
+      const result = detectPrSubChangesFromCommits(
+        200,
+        'Export and auth fixes',
+        [
+          exportCommit,
+          { sha: 'f1', subject: `${marker} feat(ui): add export dialog` },
+          authCommit,
+        ],
+      );
+
+      expect(result).toEqual(expanded);
+    },
+  );
+
+  test('keeps original order and consecutive sub-indexes after filtering and deduplication', () => {
+    const result = detectPrSubChangesFromCommits(
+      200,
+      'Export, auth and query work',
+      [
+        { sha: 'n1', subject: 'chore: update swagger types' },
+        exportCommit,
+        { sha: 'd1', subject: 'feat(api-v2): Add bulk export endpoint!' },
+        { sha: 'n2', subject: 'address review comments' },
+        authCommit,
+        {
+          sha: 'f1',
+          subject: 'fixup! fix(auth): handle missing authorization header',
+        },
+        { sha: 'c3', subject: 'perf(db): batch export queries' },
+      ],
+    );
+
+    expect(result).toEqual([
+      ...expanded,
+      {
+        subIndex: 3,
+        title: 'batch export queries',
+        rawTitle: 'perf(db): batch export queries',
+        commitSha: 'c3',
+      },
+    ]);
+  });
+});
