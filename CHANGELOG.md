@@ -5,6 +5,145 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.13.0] - 2026-11-28
+
+`changelog-bot` v0.13.0 is here! 🚀🐈
+
+Another release, another step toward v1.0.0!
+
+This time, we've focused on better CI integration, more reliable changelog generation, and stronger regression coverage.
+
+### Added
+
+- add a check mode for changelog drift by @noahkhomer18 in [#369](https://github.com/necoz-oss/changelog-bot/pull/369)
+  - Why: CI needs a pass or fail on whether the committed changelog matches what the tool would generate.
+- expose generated release notes as a `release-notes` output by @MaxonT in [#378](https://github.com/necoz-oss/changelog-bot/pull/378)
+  - Why: The composite GitHub Action does not expose the generated text as an Action output.
+- expose changelog drift check mode by @noahkhomer18 in [#396](https://github.com/necoz-oss/changelog-bot/pull/396)
+  - Why: CI users currently cannot use this documented CLI feature through the public GitHub Actions interfaces.
+
+### Fixed
+
+- stop splitting a pull request into its refactor commits by @noahkhomer18 in [#377](https://github.com/necoz-oss/changelog-bot/pull/377)
+  - Why: A pull request is no longer split into separate changelog entries just because it contains refactor commits.
+- keep release-note text written before the first heading by @noahkhomer18 in [#376](https://github.com/necoz-oss/changelog-bot/pull/376)
+  - Why: Custom release-note content appearing before the first H2 heading is silently discarded during changelog generation.
+- ignore H2 headings inside fenced code blocks by @noahkhomer18 in [#390](https://github.com/necoz-oss/changelog-bot/pull/390)
+  - Why: H2-looking lines inside a fenced code block no longer start a new release section.
+- distinguish internal helper additions from new features by @Yshuro in [#391](https://github.com/necoz-oss/changelog-bot/pull/391)
+  - Why: The change introduces a shared internal helper to reduce duplicated metadata diagnostic logic while preserving existing behavior.
+- respect fence length when demoting section headings by @noahkhomer18 in [#397](https://github.com/necoz-oss/changelog-bot/pull/397)
+
+### Changed
+
+- replace remaining native type checks with is-kit (#340) by @johnnylemonny in [#399](https://github.com/necoz-oss/changelog-bot/pull/399)
+  - Why: Changelog-bot already uses `is-kit` through `src/utils/is.ts` to keep runtime type checks consistent.
+
+### Docs
+
+- 0.12.0 by @github-actions[bot] in [#370](https://github.com/necoz-oss/changelog-bot/pull/370)
+- correct the project maturity notice by @MaxonT in [#394](https://github.com/necoz-oss/changelog-bot/pull/394)
+
+### Test
+
+- add agent-written PR descriptions and agent false-positive rate by @johnnylemonny in [#374](https://github.com/necoz-oss/changelog-bot/pull/374)
+- cover sub-change suppression and semantic deduplication by @noahkhomer18 in [#379](https://github.com/necoz-oss/changelog-bot/pull/379)
+- cover retry-after parsing from alternate error shapes by @DeviousCardi in [#388](https://github.com/necoz-oss/changelog-bot/pull/388)
+- verify linked issue extraction preserves encounter order by @Yshuro in [#389](https://github.com/necoz-oss/changelog-bot/pull/389)
+- cover CRLF and whitespace preservation across intro rendering by @Yshuro in [#398](https://github.com/necoz-oss/changelog-bot/pull/398)
+- cover case-insensitive type and scope matching by @Yshuro in [#400](https://github.com/necoz-oss/changelog-bot/pull/400)
+- distinguish permission errors from secondary rate limits by @Yshuro in [#401](https://github.com/necoz-oss/changelog-bot/pull/401)
+
+### Chore
+
+- bump the minor-and-patch group with 4 updates by @dependabot[bot] in [#375](https://github.com/necoz-oss/changelog-bot/pull/375)
+- bump the minor-and-patch group with 5 updates by @dependabot[bot] in [#402](https://github.com/necoz-oss/changelog-bot/pull/402)
+- Release: 0.13.0 by @github-actions[bot] in [#410](https://github.com/necoz-oss/changelog-bot/pull/410)
+
+### What's new 🚀
+
+#### ✅ Changelog drift detection
+
+Thanks to @noahkhomer18, you can now use `--check` to verify that your changelog is up to date without modifying files or creating PRs!
+
+```bash
+pnpm dlx @nyaomaru/changelog-bot@0.13.0 \
+  --release-tag HEAD \
+  --release-name 0.13.0 \
+  --check
+```
+
+The feature is also available through GitHub Actions using `check: 'true'`.
+
+[[#369](https://github.com/necoz-oss/changelog-bot/pull/369)](https://github.com/necoz-oss/changelog-bot/pull/369) · [[#396](https://github.com/necoz-oss/changelog-bot/pull/396)](https://github.com/necoz-oss/changelog-bot/pull/396)
+
+#### 📤 Reuse generated release notes
+
+Thanks to @MaxonT, the GitHub Action now exposes a `release-notes` output when using `output: stdout`.
+
+```yaml
+- name: Generate release notes
+  id: changelog
+  uses: necoz-oss/changelog-bot@v0
+  with:
+    npm-version: '0.13.0'
+    output: stdout
+
+# Access using:
+# steps.changelog.outputs.release-notes
+```
+
+Generate once, use the Markdown wherever you need it!
+
+[[#378](https://github.com/necoz-oss/changelog-bot/pull/378)](https://github.com/necoz-oss/changelog-bot/pull/378)
+
+#### 🛠️ More reliable changelogs
+
+We've also improved:
+
+- Markdown preservation, including introductions and fenced code blocks.
+- Classification accuracy and sub-change detection.
+- WHY evaluation, including agent-written descriptions.
+- GitHub error handling and regression coverage.
+
+Less noise, fewer surprises, and more trustworthy release notes! 🐈
+
+### Thank you, contributors! 💚
+
+A huge thank you to everyone who made this release possible!
+
+- **@noahkhomer18** — For the new drift-check feature, Markdown fixes, and careful regression testing.
+- **@Yshuro** — For improving classification, WHY issue ordering, and test coverage. I especially appreciate your thoughtful responses to review feedback!
+- **@johnnylemonny** — For strengthening our WHY evaluation framework and type safety. Your continued attention to long-term reliability means a lot!
+- **@MaxonT** — For the new Action output and documentation improvements. Welcome to changelog-bot!
+- **@DeviousCardi** — For expanding GitHub retry-after error-handling tests. Welcome to changelog-bot!
+
+Every contribution, big or small, makes this project better. Thank you all! 😸💚
+
+### What's next? 👀
+
+We're getting closer to **v1.0.0**!
+
+Next up: finalizing our public interfaces, improving accuracy, refining WHY extraction, and building a proper documentation site.
+
+Follow our progress in [[the v1 release tracker](https://github.com/necoz-oss/changelog-bot/issues/409)](https://github.com/necoz-oss/changelog-bot/issues/409).
+
+**Small. Simple. Useful.** 💚🐈
+
+Happy changelogging! 🚀
+
+---
+
+### New Contributors
+
+* @MaxonT made their first contribution in https://github.com/necoz-oss/changelog-bot/pull/378
+* @DeviousCardi made their first contribution in https://github.com/necoz-oss/changelog-bot/pull/388
+* @Yshuro made their first contribution in https://github.com/necoz-oss/changelog-bot/pull/389
+
+**Full Changelog**: https://github.com/necoz-oss/changelog-bot/compare/**
+
+[v0.13.0]: https://github.com/necoz-oss/changelog-bot/compare/v0...v0.13.0
+
 ## [v0.12.0] - 2026-11-19
 
 ### Added
