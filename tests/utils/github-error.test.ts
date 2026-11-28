@@ -726,3 +726,277 @@ describe('classifyGithubError retry-after extraction (alternate shapes)', () => 
     expect(failure.retryAfter).toBe(0);
   });
 });
+
+describe('classifyGithubError HTTP 403/429 edge cases', () => {
+  test.each([
+    [
+      'Error instance with status 403 and permission message',
+      Object.assign(new Error('Resource not accessible by integration'), {
+        status: 403,
+      }),
+      {
+        status: 'unauthenticated',
+        message:
+          'GitHub API forbidden (403): Resource not accessible by integration',
+        statusCode: 403,
+      },
+    ],
+    [
+      'Error instance with status 403 and secondary rate limit',
+      Object.assign(new Error('You have exceeded a secondary rate limit'), {
+        status: 403,
+      }),
+      {
+        status: 'rate-limited',
+        message:
+          'GitHub API rate limit exceeded: You have exceeded a secondary rate limit',
+        statusCode: 403,
+        retryAfter: undefined,
+      },
+    ],
+    [
+      'statusCode 403 with permission message',
+      {
+        statusCode: 403,
+        message: 'Must have admin rights to Repository',
+      },
+      {
+        status: 'unauthenticated',
+        message:
+          'GitHub API forbidden (403): Must have admin rights to Repository',
+        statusCode: 403,
+      },
+    ],
+    [
+      'statusCode 403 with rate limit message',
+      {
+        statusCode: 403,
+        message: 'API rate limit exceeded for user',
+      },
+      {
+        status: 'rate-limited',
+        message:
+          'GitHub API rate limit exceeded: API rate limit exceeded for user',
+        statusCode: 403,
+        retryAfter: undefined,
+      },
+    ],
+    [
+      'statusCode 429',
+      {
+        statusCode: 429,
+        message: 'Too Many Requests',
+      },
+      {
+        status: 'rate-limited',
+        message: 'GitHub API rate limit exceeded: Too Many Requests',
+        statusCode: 429,
+        retryAfter: undefined,
+      },
+    ],
+  ])(
+    'handles different error object shapes: %s',
+    (_desc, errorCandidate, expected) => {
+      expect(classifyGithubError(errorCandidate, 'PR #42')).toEqual(expected);
+    },
+  );
+
+  test.each([
+    ['uppercase primary rate limit', 'API RATE LIMIT EXCEEDED FOR USER'],
+    ['mixed-case primary rate limit', 'GitHub API Rate Limit Exceeded'],
+    [
+      'uppercase secondary rate limit',
+      'YOU HAVE EXCEEDED A SECONDARY RATE LIMIT',
+    ],
+  ])(
+    'handles case variations for 403 rate-limit messages: %s',
+    (_desc, message) => {
+      const failure = classifyGithubError({ status: 403, message }, 'PR #42');
+
+      expect(failure).toEqual({
+        status: 'rate-limited',
+        message: `GitHub API rate limit exceeded: ${message}`,
+        statusCode: 403,
+        retryAfter: undefined,
+      });
+    },
+  );
+
+  test.each([
+    [
+      'secondary rate limit in body.message with generic Forbidden top-level message',
+      {
+        status: 403,
+        message: 'Forbidden',
+        body: {
+          message:
+            'You have exceeded a secondary rate limit. Please wait a few minutes before you try again.',
+          documentation_url:
+            'https://docs.github.com/rest/overview/resources-in-the-rest-api#secondary-rate-limits',
+        },
+      },
+      {
+        status: 'rate-limited',
+        message: 'GitHub API rate limit exceeded: Forbidden',
+        statusCode: 403,
+        retryAfter: undefined,
+      },
+    ],
+    [
+      'primary rate limit in body.message without top-level message',
+      {
+        status: 403,
+        body: {
+          message: 'API rate limit exceeded for user',
+        },
+      },
+      {
+        status: 'rate-limited',
+        message:
+          'GitHub API rate limit exceeded: API rate limit exceeded for user',
+        statusCode: 403,
+        retryAfter: undefined,
+      },
+    ],
+    [
+      'secondary rate limit in raw string body without top-level message',
+      {
+        status: 403,
+        body: 'You have exceeded a secondary rate limit',
+      },
+      {
+        status: 'rate-limited',
+        message:
+          'GitHub API rate limit exceeded: You have exceeded a secondary rate limit',
+        statusCode: 403,
+        retryAfter: undefined,
+      },
+    ],
+    [
+      'permission message in body.message without top-level message',
+      {
+        status: 403,
+        body: {
+          message: 'Resource not accessible by integration',
+        },
+      },
+      {
+        status: 'unauthenticated',
+        message:
+          'GitHub API forbidden (403): Resource not accessible by integration',
+        statusCode: 403,
+      },
+    ],
+    [
+      'permission message in raw string body without top-level message',
+      {
+        status: 403,
+        body: 'Must have push access to repository',
+      },
+      {
+        status: 'unauthenticated',
+        message:
+          'GitHub API forbidden (403): Must have push access to repository',
+        statusCode: 403,
+      },
+    ],
+    [
+      'generic Forbidden top-level message with permission message in body',
+      {
+        status: 403,
+        message: 'Forbidden',
+        body: {
+          message: 'Must have admin rights to Repository',
+        },
+      },
+      {
+        status: 'unauthenticated',
+        message: 'GitHub API forbidden (403): Forbidden',
+        statusCode: 403,
+      },
+    ],
+    [
+      'body retry_after preserved when body has secondary rate limit message',
+      {
+        status: 403,
+        message: 'Forbidden',
+        body: {
+          message: 'You have exceeded a secondary rate limit',
+          retry_after: '90',
+        },
+      },
+      {
+        status: 'rate-limited',
+        message: 'GitHub API rate limit exceeded: Forbidden',
+        statusCode: 403,
+        retryAfter: 90,
+      },
+    ],
+  ])(
+    'handles nested response body messages: %s',
+    (_desc, errorCandidate, expected) => {
+      expect(classifyGithubError(errorCandidate, 'PR #42')).toEqual(expected);
+    },
+  );
+
+  test.each([
+    [
+      '403 with no message and no body',
+      { status: 403 },
+      'unauthenticated',
+      403,
+    ],
+    [
+      'statusCode 403 without message',
+      { statusCode: 403 },
+      'unauthenticated',
+      403,
+    ],
+    [
+      '403 with empty string message',
+      { status: 403, message: '' },
+      'unauthenticated',
+      403,
+    ],
+    [
+      '403 with empty object body',
+      { status: 403, body: {} },
+      'unauthenticated',
+      403,
+    ],
+    [
+      '403 with undefined message and body',
+      { status: 403, message: undefined, body: undefined },
+      'unauthenticated',
+      403,
+    ],
+    ['429 with missing message', { status: 429 }, 'rate-limited', 429],
+  ])(
+    'handles missing or empty messages: %s',
+    (_desc, errorCandidate, expectedStatus, expectedStatusCode) => {
+      const failure = classifyGithubError(errorCandidate, 'PR #42');
+
+      expect(failure.status).toBe(expectedStatus);
+      expect(failure.statusCode).toBe(expectedStatusCode);
+    },
+  );
+
+  test('drops retryAfter on 403 ordinary permission error even when present on object', () => {
+    const failure = classifyGithubError(
+      {
+        status: 403,
+        message: 'Resource not accessible by integration',
+        retryAfter: 60,
+      },
+      'PR #42',
+    );
+
+    expect(failure).toEqual({
+      status: 'unauthenticated',
+      message:
+        'GitHub API forbidden (403): Resource not accessible by integration',
+      statusCode: 403,
+    });
+    expect(failure).not.toHaveProperty('retryAfter');
+  });
+});
